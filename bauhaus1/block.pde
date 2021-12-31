@@ -13,40 +13,64 @@ class Block
   color primaCol;
   color secCol;
   IntList radomOrder =  new IntList();
+  float arcRatio = 0.75;
   Type type;
 
   Block(float _x, float _y)
   {
-    x =_x; 
-    y = _y;
-    type = Type.values()[floor(random(5))];
-    SetArrays();
-    SetColours();
+    Setup(_x, _y, null);
   }
 
+  Block(float _x, float _y, color[] pallet)
+  {
+    if (pallet.length < 2)
+      throw new IllegalArgumentException("Pallet must have more than 2 colours"); 
+    Setup(_x, _y, pallet);
+  }
+
+  void Setup(float _x, float _y, color[] pallet)
+  {
+    x =_x; 
+    y = _y;
+    type = Type.values()[floor(random(Type.values().length))];
+    SetArrays();
+    SetColours(pallet);
+  }
   void SetArrays()
   {        
-
-
     for (int i = 0; i < 4; i++)
       radomOrder.append(i);
   }
 
-  void SetColours()
+  void SetColours(color[] pallet)
   {
-    primaCol= color( random(0, 255), random(0, 255), random(0, 255));
-    secCol= color( random(0, 255), random(0, 255), random(0, 255));
+    if (pallet == null) {
+      primaCol= RandomColour();
+      secCol= RandomColour();
+    } else {
+      int primColInd =  floor(random(pallet.length));
+      int secColInd = floor(random(pallet.length));
+      while (secColInd == primColInd)
+        secColInd = floor(random(pallet.length));
+      primaCol = pallet[primColInd];
+      secCol= pallet[secColInd];
+    }
+  }
+
+  color RandomColour()
+  {
+    return color( random(0, 255), random(0, 255), random(0, 255));
   }
 
   void Redraw()
   {
-        neigbours[0] = up; 
+    neigbours[0] = up; 
     neigbours[1] = down; 
     neigbours[2] = left; 
     neigbours[3] = right; 
     radomOrder.shuffle();
 
-    boolean isGoodBlock = false;
+    boolean  isGoodBlock= false;
 
     for (int i : radomOrder)
     {
@@ -54,7 +78,7 @@ class Block
         continue;
       if ( TypeMatch(neigbours[i]) > random(1))
       {
-        println("Colour Match x:" + x + " y:"+y + " with neighbour x:"+neigbours[i].x+ " y:"+neigbours[i].y );
+        //println("Colour Match x:" + x + " y:"+y + " with neighbour x:"+neigbours[i].x+ " y:"+neigbours[i].y );
         isGoodBlock = true;
         ColourMatch(neigbours[i]);
         Draw();
@@ -62,9 +86,9 @@ class Block
       }
     }
 
-    if (random(1) > 0.4)
+    if (!isGoodBlock || random(1) > 0.9)
     {
-      println("Swap Block x:" + x + " y:"+y);
+      //println("Swap Block x:" + x + " y:"+y);
       SwapBlock();
       Draw();
     }
@@ -72,8 +96,6 @@ class Block
 
   void ColourMatch(Block neigbour)
   {
-    if (neigbour == null)
-      return;
     if (random(1) > 0.5)
     {
       primaCol = neigbour.primaCol;
@@ -83,88 +105,114 @@ class Block
       secCol = neigbour.secCol;
     }
   }
-
+  boolean ChooseArc()
+  {
+    return random(1) < arcRatio;
+  }
   void SwapBlock()
   {
     radomOrder.shuffle();
-  println( neigbours);
+    boolean swapped = false;
     for (int i : radomOrder)
     {
       if (neigbours[i] == null)
       {
-       Print("Null neighbour at SwapBlock");
+        Print("Null neighbour at SwapBlock");
         continue;
       }
       switch(i) {
       case 0: // up
-        MatchUp();
+        swapped = MatchUp();
         break;
       case 1: // down
-        MatchDown();
+        swapped = MatchDown();
         break;
       case 2: // left
-        MatchLeft();
+        swapped = MatchLeft();
         break;
       case 3: // right
-        MatchRight();
+        swapped = MatchRight();
+        
+      }
+      if (swapped)
+      {
+        ColourMatch(neigbours[i]);
         break;
       }
     }
+    
   }
 
-  void MatchUp()
+  boolean MatchUp()
   {
     switch(up.type) {
     case TOP_LEFT_ARC: // top left arc
-      type = Type.BOTTOM_RIGHT_ARC;
-      break;
+      type = ChooseArc() ? Type.BOTTOM_RIGHT_ARC : Type.VERT_SPLIT;
+      return true;
     case TOP_RIGHT_ARC: // top right arc
-      type = Type.BOTTOM_RIGHT_ARC;
-      break;
+      type = ChooseArc() ? Type.BOTTOM_RIGHT_ARC : Type.VERT_SPLIT;
+      return true;
+    case VERT_SPLIT: 
+      type = ChooseArc() ? random(1)> 0.5 ? Type.BOTTOM_RIGHT_ARC : Type.BOTTOM_LEFT_ARC : Type.VERT_SPLIT;
+      return true;
     default:
       Print("No Up Match");
+      return false;
     }
   }
 
-  void MatchDown()
+
+  boolean MatchDown()
   {
     switch(down.type) {
     case BOTTOM_RIGHT_ARC: // bottom right arc
-      type = Type.TOP_RIGHT_ARC;
-      break;
+      type = ChooseArc() ? Type.TOP_RIGHT_ARC : Type.VERT_SPLIT;
+      return true;
     case BOTTOM_LEFT_ARC: // bottom left arc
-      type = Type.TOP_LEFT_ARC;
-      break;
+      type = ChooseArc() ? Type.TOP_LEFT_ARC : Type.VERT_SPLIT;
+      return true;
+    case VERT_SPLIT: 
+      type = ChooseArc() ? random(1)> 0.5 ? Type.TOP_RIGHT_ARC : Type.TOP_LEFT_ARC : Type.VERT_SPLIT;
+      return true;
     default:
       Print("No Down Match");
+      return false;
     }
   }
 
-  void MatchLeft()
+  boolean MatchLeft()
   {
     switch(left.type) {
 
     case BOTTOM_LEFT_ARC: // bottom left arc
-      type = Type.BOTTOM_RIGHT_ARC;
-      break;
+      type = ChooseArc() ? Type.BOTTOM_RIGHT_ARC : Type.HORI_SPLIT;
+      return true;
     case TOP_LEFT_ARC: // top left arc
-      type = Type.TOP_RIGHT_ARC;
-      break;
+      type = ChooseArc() ? Type.TOP_RIGHT_ARC : Type.HORI_SPLIT;
+      return true;
+    case HORI_SPLIT: 
+      type = ChooseArc() ? random(1)> 0.5 ? Type.TOP_RIGHT_ARC : Type.BOTTOM_RIGHT_ARC : Type.HORI_SPLIT;
+      return true;
     default:
       Print("No Left Match");
+      return false;
     }
   }
-  void MatchRight()
+  boolean MatchRight()
   {
     switch(right.type) {
     case BOTTOM_RIGHT_ARC: // bottom right arc
       type = Type.BOTTOM_LEFT_ARC;
-      break;
+      return true;
     case TOP_RIGHT_ARC: // top right arc
       type = Type.TOP_LEFT_ARC;
-      break;
+      return true;
+    case HORI_SPLIT: 
+      type = ChooseArc() ? random(1)> 0.5 ? Type.TOP_LEFT_ARC : Type.BOTTOM_LEFT_ARC : Type.HORI_SPLIT;
+      return true;
     default:
       Print("No Right Match");
+      return false;
     }
   }
 
@@ -238,9 +286,13 @@ class Block
     case TOP_RIGHT_ARC: // top right arc
       DrawArc(x, y+1, HALF_PI + PI, TWO_PI);
       break;
-    case HORI_SPLIT:
+    case VERT_SPLIT:
       fill(secCol);
       rect(x * size, y * size, size/2, size);
+      break;
+    case HORI_SPLIT:
+      fill(secCol);
+      rect(x * size, y * size, size, size/2);
       break;
     }
   }
@@ -254,7 +306,7 @@ class Block
   }
   void Print(String str)
   {
-    println(str);
+    //println(str);
   }
 }
 
@@ -264,5 +316,6 @@ enum Type
     BOTTOM_RIGHT_ARC, 
     TOP_LEFT_ARC, 
     TOP_RIGHT_ARC, 
-    HORI_SPLIT
+    HORI_SPLIT, 
+    VERT_SPLIT
 }
