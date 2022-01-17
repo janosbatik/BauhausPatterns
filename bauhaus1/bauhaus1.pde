@@ -6,6 +6,8 @@ int fileNum = 1;
 int xTiles;
 int yTiles;
 
+boolean USE_RANDOM_COLOURS = true;
+
 void setup() {
   size(600, 600);
   frameRate(30);
@@ -32,7 +34,10 @@ void InitBlocks()
   {
     for (int y =  0; y < yTiles; y ++)
     {
-      blocks[x][y]= new Block(x, y, pallet);
+      if (USE_RANDOM_COLOURS)
+        blocks[x][y]= new Block(x, y);
+      else
+        blocks[x][y]= new Block(x, y, pallet);
       blocks[x][y].Draw();
     }
   }
@@ -83,15 +88,15 @@ String NowString() {
     +nf(minute(), 2);
 }
 
- void InitPallet() 
- {
-   pallet = new color[8];
-   pallet[0] = color(0, 0, 0);        // black
-   pallet[1] = color(255, 255, 255);  // white
-   pallet[2] = color(150, 150, 150);  // grey
-   pallet[3] = color(230, 50, 40);    // red
-   pallet[4] = color(20, 110, 170);   // blue
-   pallet[5] = color(0, 130, 90);     // green
-   pallet[6] = color(240, 200, 0);    // yellow
-   pallet[7] = color(240, 140, 40);   // orange
- }
+void InitPallet() 
+{
+  pallet = new color[8];
+  pallet[0] = color(0, 0, 0);        // black
+  pallet[1] = color(255, 255, 255);  // white
+  pallet[2] = color(150, 150, 150);  // grey
+  pallet[3] = color(230, 50, 40);    // red
+  pallet[4] = color(20, 110, 170);   // blue
+  pallet[5] = color(0, 130, 90);     // green
+  pallet[6] = color(240, 200, 0);    // yellow
+  pallet[7] = color(240, 140, 40);   // orange
+}
